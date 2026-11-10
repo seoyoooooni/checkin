@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>초음파 테스트</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --line: #2a2f3a; --text: #e6e8ec;
+    --sub: #9aa1ad; --accent: #4f8cff; --ok: #2ecc71; --warn: #f5a623; --bad: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 8px 0 4px; }
+  .sub { color: var(--sub); font-size: 13px; margin: 0 0 16px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tabs button { flex: 1; }
+  button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 15px; cursor: pointer; font-family: inherit; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.active { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; }
+  .panel p.desc { font-size: 12px; color: var(--sub); margin: 0 0 8px; line-height: 1.5; }
+  label { display: flex; justify-content: space-between; font-size: 13px; color: var(--sub); margin: 12px 0 4px; }
+  label .val { color: var(--text); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; }
+  input[type=text] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 22px; letter-spacing: 8px; text-align: center; font-family: inherit; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .row > * { flex: 1; }
+  canvas { width: 100%; height: 180px; background: var(--bg); border-radius: 8px; display: block; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 8px; text-align: center; }
+  .stat b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--sub); }
+  .code { font-size: 40px; text-align: center; letter-spacing: 10px; font-variant-numeric: tabular-nums; margin: 8px 0; min-height: 52px; }
+  .log { font-size: 13px; max-height: 180px; overflow: auto; background: var(--bg); border-radius: 8px; padding: 8px; font-variant-numeric: tabular-nums; }
+  .log div { padding: 3px 0; border-bottom: 1px solid var(--line); }
+  .log div:last-child { border-bottom: none; }
+  .hint { font-size: 12px; color: var(--sub); line-height: 1.6; }
+  .hint b { color: var(--text); }
+  .msg { font-size: 13px; margin-top: 8px; min-height: 18px; }
+  .hidden { display: none; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <h1>초음파 테스트</h1>
+  <p class="sub"></p>
+  <div class="tabs">
+    <button id="tabTx" class="active">송신</button>
+    <button id="tabRx">수신</button>
+  </div>
+
+  <!-- ===== 보내기 ===== -->
+  <section id="txView">
+    <div class="panel">
+      <label style="margin-top:0">볼륨 <span class="val" id="volVal">50%</span></label>
+      <input type="range" id="vol" min="5" max="100" value="50">
+      <p class="hint">너무 크면 귀에 거슬릴 수 있어요. 50%부터 시작하세요.</p>
+    </div>
+
+    <div class="panel">
+      <h2>소리 내기</h2>
+      <p class="desc">정한 주파수로 소리를 계속 냅니다.</p>
+      <label>주파수 <span class="val" id="freqVal">19000 Hz</span></label>
+      <input type="range" id="freq" min="15000" max="21000" step="50" value="19000">
+      <div class="row">
+        <button id="toneBtn" class="primary">재생</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>숫자 보내기</h2>
+      <p class="desc">4자리 숫자를 소리로 보냅니다.</p>
+      <input type="text" id="code" maxlength="4" inputmode="numeric" value="2580">
+      <label>반복 <span class="val" id="repsVal">3번</span></label>
+      <input type="range" id="reps" min="1" max="10" value="3">
+      <div class="row">
+        <button id="randBtn">랜덤</button>
+        <button id="sendBtn" class="primary">보내기</button>
+      </div>
+      <div class="msg" id="txMsg"></div>
+    </div>
+  </section>
+
+  <!-- ===== 받기 ===== -->
+  <section id="rxView" class="hidden">
+    <div class="panel">
+      <div class="row" style="margin-top:0">
+        <button id="rxBtn" class="primary">듣기 시작</button>
+      </div>
+      <div class="msg" id="rxMsg"></div>
+    </div>
+
+    <div class="panel">
+      <h2>주파수</h2>
+      <p class="desc">점선은 숫자별 주파수, 빨간 선은 감지 기준</p>
+      <canvas id="spec"></canvas>
+      <div class="stats">
+        <div class="stat"><b id="sStrongest">-</b><span>제일 센 주파수</span></div>
+        <div class="stat"><b id="sTarget">-</b><span>목표 주파수 세기</span></div>
+        <div class="stat"><b id="sRate">-</b><span>샘플레이트</span></div>
+      </div>
+      <label>목표 주파수 <span class="val" id="tFreqVal">19000 Hz</span></label>
+      <input type="range" id="tFreq" min="15000" max="21000" step="50" value="19000">
+      <label>감지 기준 <span class="val" id="thrVal">20 dB</span></label>
+      <input type="range" id="thr" min="6" max="40" value="20">
+    </div>
+
+    <div class="panel">
+      <h2>받은 숫자</h2>
+      <div class="code" id="lastCode">----</div>
+      <div class="log" id="log"><div class="hint">아직 없음</div></div>
+      <div class="row">
+        <button id="clearBtn">지우기</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="panel hint">
+    <b>사용법</b><br>
+    노트북: 파일 열고 보내기<br>
+    폰: https 주소로 열고 받기 → 듣기 시작 → 마이크 허용<br><br>
+    <b>확인할 것</b><br>
+    폰 기종, 거리, 볼륨, 몇 번 중 몇 번 받았는지, 문 닫으면 안 잡히는지, 옆 사람한테 소리가 들리는지
+  </div>
+</main>
+
+<script>
+// ===== 공통 상수 =====
+// 숫자 0~9: 18000~19350Hz (150Hz 간격), 시작 신호: 19800Hz
+const DIGIT_BASE = 18000;
+const DIGIT_STEP = 150;
+const START_FREQ = 19800;
+const SYMBOL_MS = 150;   // ms
+const GAP_MS = 80;       // 숫자 사이 무음. 같은 숫자 연속 구분용
+const digitFreq = d => DIGIT_BASE + d * DIGIT_STEP;
+const CANDIDATES = [
+  { sym: 'S', f: START_FREQ },
+  ...Array.from({ length: 10 }, (_, d) => ({ sym: String(d), f: digitFreq(d) }))
+];
+const $ = id => document.getElementById(id);
+const AC = window.AudioContext || window.webkitAudioContext;
+
+// ===== 탭 =====
+$('tabTx').onclick = () => switchTab('tx');
+$('tabRx').onclick = () => switchTab('rx');
+function switchTab(t) {
+  $('txView').classList.toggle('hidden', t !== 'tx');
+  $('rxView').classList.toggle('hidden', t !== 'rx');
+  $('tabTx').classList.toggle('active', t === 'tx');
+  $('tabRx').classList.toggle('active', t === 'rx');
+}
+
+// ===== 보내기 =====
+let txCtx = null, toneOsc = null, toneGain = null;
+const vol = () => +$('vol').value / 100;
+
+function getTxCtx() {
+  if (!txCtx) txCtx = new AC();
+  if (txCtx.state === 'suspended') txCtx.resume();
+  return txCtx;
+}
+
+$('vol').oninput = () => {
+  $('volVal').textContent = $('vol').value + '%';
+  if (toneGain) toneGain.gain.setTargetAtTime(vol(), txCtx.currentTime, 0.02);
+};
+$('freq').oninput = () => {
+  $('freqVal').textContent = $('freq').value + ' Hz';
+  if (toneOsc) toneOsc.frequency.setValueAtTime(+$('freq').value, txCtx.currentTime);
+};
+$('reps').oninput = () => { $('repsVal').textContent = $('reps').value + '번'; };
+
+$('toneBtn').onclick = () => {
+  if (toneOsc) { stopTone(); return; }
+  const ctx = getTxCtx();
+  toneOsc = ctx.createOscillator();
+  toneGain = ctx.createGain();
+  toneOsc.frequency.value = +$('freq').value;
+  // 바로 켜면 딱 소리가 나서 천천히 키움
+  toneGain.gain.setValueAtTime(0, ctx.currentTime);
+  toneGain.gain.linearRampToValueAtTime(vol(), ctx.currentTime + 0.03);
+  toneOsc.connect(toneGain).connect(ctx.destination);
+  toneOsc.start();
+  $('toneBtn').textContent = '정지';
+};
+
+function stopTone() {
+  if (!toneOsc) return;
+  const t = txCtx.currentTime;
+  toneGain.gain.cancelScheduledValues(t);
+  toneGain.gain.setValueAtTime(toneGain.gain.value, t);
+  toneGain.gain.linearRampToValueAtTime(0, t + 0.03);
+  toneOsc.stop(t + 0.05);
+  toneOsc = null; toneGain = null;
+  $('toneBtn').textContent = '재생';
+}
+
+function scheduleSymbol(ctx, f, t, dur, v) {
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  const ramp = 0.01;
+  o.frequency.value = f;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + ramp);
+  g.gain.setValueAtTime(v, t + dur - ramp);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  o.connect(g).connect(ctx.destination);
+  o.start(t);
+  o.stop(t + dur + 0.02);
+}
+
+$('code').oninput = () => { $('code').value = $('code').value.replace(/\D/g, '').slice(0, 4); };
+$('randBtn').onclick = () => {
+  $('code').value = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+};
+
+$('sendBtn').onclick = () => {
+  const code = $('code').value;
+  if (code.length !== 4) { $('txMsg').innerHTML = '<span class="bad">숫자 4자리를 넣어주세요.</span>'; return; }
+  if (toneOsc) stopTone();
+  const ctx = getTxCtx();
+  const v = vol();
+  const reps = +$('reps').value;
+  const sym = SYMBOL_MS / 1000, gap = GAP_MS / 1000;
+  let t = ctx.currentTime + 0.1;
+  for (let r = 0; r < reps; r++) {
+    scheduleSymbol(ctx, START_FREQ, t, sym * 2, v);  // 시작 신호는 2배 길이
+    t += sym * 2 + gap;
+    for (const ch of code) {
+      scheduleSymbol(ctx, digitFreq(+ch), t, sym, v);
+      t += sym + gap;
+    }
+    t += 0.5; // 반복 사이 쉼
+  }
+  const totalMs = (t - ctx.currentTime) * 1000;
+  $('sendBtn').disabled = true;
+  $('txMsg').innerHTML = `<span class="warn">${code} 보내는 중 (${reps}번)</span>`;
+  setTimeout(() => {
+    $('sendBtn').disabled = false;
+    $('txMsg').innerHTML = `<span class="ok">${code} 보냄 (${reps}번)</span>`;
+  }, totalMs);
+};
+
+// ===== 받기 =====
+let rxCtx = null, analyser = null, stream = null, rafId = null, freqData = null, binHz = 0;
+let run = { sym: null, frames: 0 };
+let decoder = { state: 'idle', digits: [], lastTime: 0 };
+let received = [];
+
+$('tFreq').oninput = () => { $('tFreqVal').textContent = $('tFreq').value + ' Hz'; };
+$('thr').oninput = () => { $('thrVal').textContent = $('thr').value + ' dB'; };
+$('clearBtn').onclick = () => { received = []; renderLog(); $('lastCode').textContent = '----'; };
+
+$('rxBtn').onclick = async () => {
+  if (rxCtx) { stopRx(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $('rxMsg').innerHTML = '<span class="bad">마이크를 못 써요. https 주소로 열어주세요.</span>';
+    return;
+  }
+  try {
+    // 에코/소음 제거, 자동 볼륨이 초음파를 지울 수 있어서 끔
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch (e) {
+    $('rxMsg').innerHTML = `<span class="bad">마이크 권한이 없어요 (${e.name})</span>`;
+    return;
+  }
+  rxCtx = new AC();
+  await rxCtx.resume();
+  const src = rxCtx.createMediaStreamSource(stream);
+  analyser = rxCtx.createAnalyser();
+  analyser.fftSize = 2048;             // 48kHz 기준 창 43ms, 칸 23Hz
+  analyser.smoothingTimeConstant = 0;  // 평활화 끔
+  analyser.minDecibels = -130;
+  analyser.maxDecibels = 0;
+  src.connect(analyser);               // 스피커 연결 안 함 (하울링 방지)
+  freqData = new Float32Array(analyser.frequencyBinCount);
+  binHz = rxCtx.sampleRate / analyser.fftSize;
+
+  const nyq = rxCtx.sampleRate / 2;
+  $('sRate').textContent = (rxCtx.sampleRate / 1000).toFixed(1) + 'k';
+  $('rxMsg').innerHTML = nyq < 20000
+    ? `<span class="bad">이 기기는 ${Math.round(nyq)}Hz까지만 받을 수 있어요.</span>`
+    : '<span class="ok">듣는 중</span>';
+  $('rxBtn').textContent = '그만 듣기';
+  loop();
+};
+
+function stopRx() {
+  cancelAnimationFrame(rafId);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  if (rxCtx) rxCtx.close();
+  rxCtx = null; analyser = null; stream = null;
+  $('rxBtn').textContent = '듣기 시작';
+  $('rxMsg').textContent = '';
+}
+
+const binOf = f => Math.round(f / binHz);
+
+function peakAt(f) {
+  const b = binOf(f);
+  let m = -Infinity;
+  for (let i = b - 1; i <= b + 1; i++) if (i >= 0 && i < freqData.length) m = Math.max(m, freqData[i]);
+  return m;
+}
+
+function noiseFloor() {
+  // 16~21kHz 중앙값 = 배경 소음
+  const a = binOf(16000), b = Math.min(binOf(21000), freqData.length - 1);
+  const arr = [];
+  for (let i = a; i <= b; i++) if (isFinite(freqData[i])) arr.push(freqData[i]);
+  if (!arr.length) return -130;
+  arr.sort((x, y) => x - y);
+  return arr[Math.floor(arr.length / 2)];
+}
+
+function loop() {
+  if (!analyser) return;
+  analyser.getFloatFrequencyData(freqData);
+  const floor = noiseFloor();
+  const thr = +$('thr').value;
+
+  // 제일 센 주파수
+  let best = -Infinity, bestBin = 0;
+  const lo = binOf(15000), hi = Math.min(binOf(22000), freqData.length - 1);
+  for (let i = lo; i <= hi; i++) if (freqData[i] > best) { best = freqData[i]; bestBin = i; }
+  $('sStrongest').textContent = best - floor > thr ? Math.round(bestBin * binHz) + 'Hz' : '없음';
+
+  // 목표 주파수 세기 (배경 대비)
+  const tSnr = peakAt(+$('tFreq').value) - floor;
+  const el = $('sTarget');
+  el.textContent = tSnr.toFixed(0) + ' dB';
+  el.className = tSnr >= thr ? 'ok' : tSnr >= thr / 2 ? 'warn' : '';
+
+  // 후보 중 제일 센 게 기준을 넘으면 그 심볼
+  let sym = null, symSnr = -Infinity;
+  for (const c of CANDIDATES) {
+    const s = peakAt(c.f) - floor;
+    if (s > symSnr) { symSnr = s; sym = c.sym; }
+  }
+  if (symSnr < thr) sym = null;
+  feedSymbol(sym);
+
+  draw(floor, thr, sym);
+  rafId = requestAnimationFrame(loop);
+}
+
+// 같은 심볼이 3프레임 이상 이어져야 인정
+const MIN_FRAMES = 3;
+function feedSymbol(sym) {
+  if (sym === run.sym) { run.frames++; if (run.frames === MIN_FRAMES && sym !== null) onSymbol(sym); return; }
+  run = { sym, frames: 1 };
+}
+
+function onSymbol(sym) {
+  const now = performance.now();
+  if (decoder.state === 'reading' && now - decoder.lastTime > 1500) decoder.state = 'idle'; // 1.5초 끊기면 초기화
+  decoder.lastTime = now;
+  if (sym === 'S') { decoder = { state: 'reading', digits: [], lastTime: now }; $('lastCode').textContent = '····'; return; }
+  if (decoder.state !== 'reading') return;
+  decoder.digits.push(sym);
+  $('lastCode').textContent = decoder.digits.join('').padEnd(4, '·');
+  if (decoder.digits.length === 4) {
+    const code = decoder.digits.join('');
+    received.unshift({ code, time: new Date() });
+    renderLog();
+    decoder.state = 'idle';
+  }
+}
+
+function renderLog() {
+  if (!received.length) { $('log').innerHTML = '<div class="hint">아직 없음</div>'; return; }
+  const counts = {};
+  received.forEach(r => counts[r.code] = (counts[r.code] || 0) + 1);
+  const summary = Object.entries(counts).map(([c, n]) => `${c} × ${n}`).join(', ');
+  $('log').innerHTML = `<div><b>합계</b> ${summary}</div>` + received.map(r =>
+    `<div>${r.time.toLocaleTimeString('ko-KR')} · <b>${r.code}</b></div>`).join('');
+}
+
+// ===== 스펙트럼 그리기 =====
+const canvas = $('spec');
+const g2 = canvas.getContext('2d');
+function draw(floor, thr, sym) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (canvas.width !== W * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
+  g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g2.clearRect(0, 0, W, H);
+
+  const fMin = 15000, fMax = Math.min(22000, rxCtx.sampleRate / 2);
+  const dbMin = floor - 10, dbMax = floor + 60;
+  const x = f => (f - fMin) / (fMax - fMin) * W;
+  const y = db => H - (Math.min(Math.max(db, dbMin), dbMax) - dbMin) / (dbMax - dbMin) * H;
+
+  // 후보 주파수 점선
+  g2.setLineDash([2, 4]);
+  for (const c of CANDIDATES) {
+    g2.strokeStyle = c.sym === sym ? '#2ecc71' : c.sym === 'S' ? '#f5a62366' : '#4f8cff44';
+    g2.beginPath(); g2.moveTo(x(c.f), 0); g2.lineTo(x(c.f), H); g2.stroke();
+  }
+  g2.setLineDash([]);
+
+  // 감지 기준선
+  g2.strokeStyle = '#ff5c5c88';
+  g2.beginPath(); g2.moveTo(0, y(floor + thr)); g2.lineTo(W, y(floor + thr)); g2.stroke();
+
+  // 스펙트럼
+  g2.strokeStyle = '#e6e8ec';
+  g2.lineWidth = 1.5;
+  g2.beginPath();
+  for (let i = binOf(fMin); i <= binOf(fMax) && i < freqData.length; i++) {
+    const px = x(i * binHz), py = y(freqData[i]);
+    if (i === binOf(fMin)) g2.moveTo(px, py); else g2.lineTo(px, py);
+  }
+  g2.stroke();
+  g2.lineWidth = 1;
+
+  // 눈금
+  g2.fillStyle = '#9aa1ad';
+  g2.font = '10px sans-serif';
+  for (let f = 16000; f <= fMax; f += 1000) g2.fillText((f / 1000) + 'k', x(f) - 6, H - 4);
+  if (sym) { g2.fillStyle = '#2ecc71'; g2.font = 'bold 14px sans-serif'; g2.fillText(sym === 'S' ? '시작 신호' : '숫자 ' + sym, 8, 18); }
+}
+</script>
+</body>
+</html>
