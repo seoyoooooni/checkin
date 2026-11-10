@@ -48,10 +48,11 @@
 <body>
 <main>
   <h1>초음파 테스트</h1>
-  <p class="sub"></p>
+  <p class="sub">노트북은 보내기, 폰은 받기로 켜세요.</p>
+
   <div class="tabs">
-    <button id="tabTx" class="active">송신</button>
-    <button id="tabRx">수신</button>
+    <button id="tabTx" class="active">보내기</button>
+    <button id="tabRx">받기</button>
   </div>
 
   <!-- ===== 보내기 ===== -->
@@ -160,6 +161,8 @@ let txCtx = null, toneOsc = null, toneGain = null;
 const vol = () => +$('vol').value / 100;
 
 function getTxCtx() {
+  // 아이폰 무음 모드에서도 소리 나게 (Safari 16.4+)
+  if (navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch (e) {} }
   if (!txCtx) txCtx = new AC();
   if (txCtx.state === 'suspended') txCtx.resume();
   return txCtx;
