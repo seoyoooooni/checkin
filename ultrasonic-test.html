@@ -7,7 +7,8 @@
 <style>
   :root {
     --bg: #0f1115; --panel: #181b22; --line: #2a2f3a; --text: #e6e8ec;
-    --sub: #9aa1ad; --accent: #4f8cff; --ok: #2ecc71; --warn: #f5a623; --bad: #ff5c5c;
+    --sub: #9aa1ad; --accent: #d81b7a; --ok: #2ecc71; --warn: #f5a623; --bad: #ff5c5c;
+    --pink: #ff5cab; --pink-track: #3a2130;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; background: var(--bg); color: var(--text); }
@@ -18,14 +19,36 @@
   .tabs button { flex: 1; }
   button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 12px; font-size: 15px; cursor: pointer; font-family: inherit; }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-  button.active { border-color: var(--accent); color: var(--accent); }
+  button.active { border-color: var(--pink); color: var(--pink); }
   button:disabled { opacity: .4; cursor: default; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 12px; }
   .panel h2 { font-size: 15px; margin: 0 0 4px; }
   .panel p.desc { font-size: 12px; color: var(--sub); margin: 0 0 8px; line-height: 1.5; }
   label { display: flex; justify-content: space-between; font-size: 13px; color: var(--sub); margin: 12px 0 4px; }
   label .val { color: var(--text); font-variant-numeric: tabular-nums; }
-  input[type=range] { width: 100%; }
+  input[type=range] {
+    width: 100%; -webkit-appearance: none; appearance: none;
+    background: transparent; height: 24px; margin: 0; cursor: pointer;
+  }
+  /* 트랙 */
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(var(--pink), var(--pink)) 0/var(--fill, 50%) 100% no-repeat, var(--pink-track);
+  }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--pink-track); }
+  input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--pink); }
+  /* 손잡이 */
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 18px; height: 18px; margin-top: -6px;
+    border-radius: 50%; background: var(--pink);
+    border: 2px solid #fff; box-shadow: 0 1px 4px #0008;
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%; background: var(--pink);
+    border: 2px solid #fff; box-shadow: 0 1px 4px #0008;
+  }
+  input[type=range]:disabled { opacity: .4; cursor: default; }
   input[type=text] { width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 22px; letter-spacing: 8px; text-align: center; font-family: inherit; }
   .row { display: flex; gap: 8px; margin-top: 12px; }
   .row > * { flex: 1; }
@@ -95,7 +118,7 @@
 
     <div class="panel">
       <h2>주파수</h2>
-      <p class="desc">점선은 숫자별 주파수, 빨간 선은 감지 기준</p>
+      <p class="desc">점선: 숫자별 주파수, 빨간 선: 감지 기준</p>
       <canvas id="spec"></canvas>
       <div class="stats">
         <div class="stat"><b id="sStrongest">-</b><span>제일 센 주파수</span></div>
@@ -420,6 +443,17 @@ function draw(floor, thr, sym) {
   for (let f = 16000; f <= fMax; f += 1000) g2.fillText((f / 1000) + 'k', x(f) - 6, H - 4);
   if (sym) { g2.fillStyle = '#2ecc71'; g2.font = 'bold 14px sans-serif'; g2.fillText(sym === 'S' ? '시작 신호' : '숫자 ' + sym, 8, 18); }
 }
+// ===== 슬라이더 핑크 채우기 (웹킷은 CSS만으로 안 되므로 --fill 갱신) =====
+function paintRange(el) {
+  const min = +el.min || 0, max = +el.max || 100;
+  const pct = max === min ? 0 : (el.value - min) / (max - min) * 100;
+  el.style.setProperty('--fill', pct + '%');
+}
+const ranges = document.querySelectorAll('input[type=range]');
+ranges.forEach(paintRange);
+document.addEventListener('input', e => {
+  if (e.target.matches('input[type=range]')) paintRange(e.target);
+});
 </script>
 </body>
 </html>
