@@ -1,5 +1,6 @@
-import { loadAuth } from './storage';
-import type { Api, AttendanceRecord, AttendanceSession, CheckInResult, Course, LoginResult } from './types';
+import { loadAuth, saveAuth } from './storage';
+import { subscribeStomp } from './stomp';
+import type { Api, AttendanceRecord, AttendanceSession, CheckInResult, Course, LoginResult, TokenTick } from './types';
 import { ApiError } from './types';
 
 const BASE = '/api';
@@ -18,6 +19,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     });
   } catch {
     throw new ApiError(0, '서버에 연결하지 못했어요');
+  }
+  if (res.status === 401 && path !== '/auth/login') {
+    saveAuth(null);
+    window.location.replace('/login');
   }
   if (!res.ok) {
     let message = `요청에 실패했어요 (${res.status})`;
@@ -47,8 +52,16 @@ export const httpApi: Api = {
   getRecords: (sessionId) => request<AttendanceRecord[]>('GET', `/sessions/${sessionId}/records`),
   markAttendance: (sessionId, userId, status) =>
     request<void>('PUT', `/sessions/${sessionId}/records/${userId}`, { status, manual: true }),
-  subscribeToken() {
-    throw new Error('토큰 구독(STOMP)은 백엔드 연결 시 구현해야 해요. src/api/http.ts 참고');
+  subscribeToken(sessionId, onTick, onError) {
+    return subscribeStomp(
+      `/topic/sessions/${sessionId}/token`,
+      (body) => {
+        try {
+          onTick(JSON.parse(body) as TokenTick);
+        } catch {}
+      },
+      onError,
+    );
   },
   checkIn: (token, deviceId) => request<CheckInResult>('POST', '/check-in', { token, deviceId }),
 };

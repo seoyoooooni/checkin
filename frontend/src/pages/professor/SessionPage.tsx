@@ -104,10 +104,14 @@ export function SessionPage() {
   useEffect(() => {
     if (!open) return;
     try {
-      return api.subscribeToken(sessionId, (t) => {
-        tokenRef.current = t.token;
-        setExpiresAt(t.expiresAt);
-      });
+      return api.subscribeToken(
+        sessionId,
+        (t) => {
+          tokenRef.current = t.token;
+          setExpiresAt(t.expiresAt);
+        },
+        setAudioError,
+      );
     } catch (e) {
       setAudioError(e instanceof Error ? e.message : '토큰을 받지 못했어요');
     }

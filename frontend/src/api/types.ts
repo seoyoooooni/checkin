@@ -78,7 +78,7 @@ export interface Api {
   getSession(sessionId: string): Promise<{ session: AttendanceSession; course: Course }>;
   getRecords(sessionId: string): Promise<AttendanceRecord[]>;
   markAttendance(sessionId: string, userId: string, status: ManualStatus): Promise<void>;
-  subscribeToken(sessionId: string, onTick: (tick: TokenTick) => void): () => void;
+  subscribeToken(sessionId: string, onTick: (tick: TokenTick) => void, onError?: (message: string) => void): () => void;
   checkIn(token: string, deviceId: string): Promise<CheckInResult>;
 }
 

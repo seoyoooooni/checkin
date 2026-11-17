@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { USE_SAMPLE } from '../api';
 import { homePathOf, useAuth } from '../auth/AuthContext';
 import { BrandMark } from '../components/BrandMark';
 import { IconCheck, IconLock, IconUser } from '../components/icons';
@@ -130,16 +131,18 @@ export function LoginPage() {
             <button type="button">비밀번호 재설정</button>
           </div>
 
-          <div className="login-shortcuts">
-            <span className="login-shortcuts-label">체험하기</span>
-            <button type="button" onClick={() => navigate(homePathOf(enterAs('PROFESSOR')), { replace: true })}>
-              교수 화면
-            </button>
-            <span className="login-shortcuts-dot" aria-hidden />
-            <button type="button" onClick={() => navigate(homePathOf(enterAs('STUDENT')), { replace: true })}>
-              학생 화면
-            </button>
-          </div>
+          {USE_SAMPLE && (
+            <div className="login-shortcuts">
+              <span className="login-shortcuts-label">체험하기</span>
+              <button type="button" onClick={() => navigate(homePathOf(enterAs('PROFESSOR')), { replace: true })}>
+                교수 화면
+              </button>
+              <span className="login-shortcuts-dot" aria-hidden />
+              <button type="button" onClick={() => navigate(homePathOf(enterAs('STUDENT')), { replace: true })}>
+                학생 화면
+              </button>
+            </div>
+          )}
         </form>
       </main>
     </div>
