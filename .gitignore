@@ -1,1 +1,3 @@
 .vscode/
+deploy/.env
+deploy/README.md
