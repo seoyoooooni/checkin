@@ -258,6 +258,10 @@ input {
 .input:focus {
   border-color: var(--blue-500);
 }
+.input-md {
+  height: 48px;
+  font-size: 16px;
+}
 .input-sm {
   height: 40px;
   font-size: 14px;
@@ -413,15 +417,10 @@ input[type='range'].slider::-moz-range-thumb {
   font-weight: 800;
   letter-spacing: -0.3px;
 }
-.portal-divider {
-  width: 1px;
-  height: 16px;
-  background: var(--line-strong);
-}
-.portal-sub {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--grey-600);
+.portal-logo {
+  display: block;
+  height: 28px;
+  width: auto;
 }
 .portal-spacer {
   flex: 1;
@@ -527,8 +526,6 @@ input[type='range'].slider::-moz-range-thumb {
 }
 
 @media (max-width: 720px) {
-  .portal-sub,
-  .portal-divider,
   .user-chip-role {
     display: none;
   }
@@ -536,6 +533,9 @@ input[type='range'].slider::-moz-range-thumb {
     gap: 8px;
     height: 60px;
     padding: 0 16px;
+  }
+  .portal-logo {
+    height: 22px;
   }
   .user-chip,
   .logout-btn {
@@ -646,6 +646,9 @@ input[type='range'].slider::-moz-range-thumb {
   }
 }
 
+.empty-action {
+  margin-top: 16px;
+}
 .empty {
   padding: 48px 0;
   text-align: center;
@@ -715,8 +718,13 @@ input[type='range'].slider::-moz-range-thumb {
   color: var(--grey-800);
   font-weight: 500;
 }
-.course-card .btn {
+.course-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-top: auto;
+}
+.course-actions .btn {
   height: 50px;
 }
 .skeleton {

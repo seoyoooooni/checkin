@@ -14,31 +14,18 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 40px 48px;
+  justify-content: flex-end;
+  padding: 40px 48px 56px;
   overflow: hidden;
   color: #fff;
   background: linear-gradient(160deg, var(--navy-800) 0%, var(--navy-900) 70%);
 }
-.login-hero-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 800;
-}
-.login-hero-title {
-  font-size: 36px;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: -0.8px;
-}
-.login-hero-desc {
-  max-width: 340px;
-  margin-top: 16px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.7);
+.login-hero-logo {
+  display: block;
+  position: relative;
+  align-self: flex-start;
+  height: 52px;
+  width: auto;
 }
 .login-waves {
   position: absolute;
@@ -296,4 +283,31 @@
     width: 160%;
     transform: translate(-60%, -50%);
   }
+}
+
+.signup-hint {
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--grey-500);
+}
+.signup-hint.bad {
+  color: var(--red-500);
+}
+.signup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+  font-size: 15px;
+  color: var(--grey-600);
+}
+.signup-footer button {
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--blue-500);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
 }
