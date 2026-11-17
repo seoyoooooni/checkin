@@ -126,7 +126,7 @@ export function LoginPage() {
           </button>
 
           <div className="login-links">
-            <button type="button">아이디 찾기</button>
+            <button type="button">회원가입</button>
             <button type="button">비밀번호 재설정</button>
           </div>
 
