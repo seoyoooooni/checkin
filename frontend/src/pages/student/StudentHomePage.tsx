@@ -1,0 +1,85 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api, type Course } from '../../api';
+import { useAuth } from '../../auth/AuthContext';
+import { IconBook, IconMic } from '../../components/icons';
+import { PortalLayout } from '../../components/PortalLayout';
+import './student.css';
+
+export function StudentHomePage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState<Course[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api
+      .getMyCourses()
+      .then(setCourses)
+      .catch((e) => setError(e instanceof Error ? e.message : '과목을 불러오지 못했어요'));
+  }, []);
+
+  return (
+    <PortalLayout>
+      <section className="checkin-banner">
+        <div className="checkin-banner-icon">
+          <IconMic size={30} />
+        </div>
+        <div className="checkin-banner-text">
+          <h1>
+            {user?.name ? `${user.name}님, ` : ''}강의실에 도착했나요?
+          </h1>
+        </div>
+        <button className="checkin-banner-btn" onClick={() => navigate('/student/check-in')}>
+          출석하기
+        </button>
+      </section>
+
+      <div className="page-head student-courses-head">
+        <h2 className="page-title with-icon">
+          <IconBook size={26} />내 수강 과목
+        </h2>
+      </div>
+
+      {error && <div className="card empty">{error}</div>}
+      {!courses && !error && (
+        <div className="course-grid">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card skeleton" />
+          ))}
+        </div>
+      )}
+      {courses?.length === 0 && <div className="card empty">수강 중인 과목이 없어요</div>}
+
+      {courses && courses.length > 0 && (
+        <div className="course-grid">
+          {courses.map((c) => (
+            <article key={c.id} className="card course-card">
+              <div className="course-card-top">
+                <span className="course-code">
+                  {c.name}-{c.section}
+                </span>
+                <span className="chip num">{c.semester}</span>
+              </div>
+              <h3 className="course-name">{c.name}</h3>
+              <dl className="course-meta">
+                <div>
+                  <dt>교수</dt>
+                  <dd>{c.professorName}</dd>
+                </div>
+                <div>
+                  <dt>시간</dt>
+                  <dd>{c.schedule}</dd>
+                </div>
+                <div>
+                  <dt>강의실</dt>
+                  <dd>{c.room}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
+    </PortalLayout>
+  );
+}
