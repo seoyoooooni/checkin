@@ -24,6 +24,14 @@ export function saveAuth(auth: StoredAuth | null) {
   } catch {}
 }
 
+export function onAuthChange(callback: () => void): () => void {
+  const handler = (e: StorageEvent) => {
+    if (e.key === AUTH_KEY || e.key === null) callback();
+  };
+  window.addEventListener('storage', handler);
+  return () => window.removeEventListener('storage', handler);
+}
+
 export function getDeviceId(): string {
   try {
     let id = localStorage.getItem(DEVICE_KEY);

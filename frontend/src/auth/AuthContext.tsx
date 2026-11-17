@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, previewUser, type Role, type User } from '../api';
-import { loadAuth, saveAuth, type StoredAuth } from '../api/storage';
+import { loadAuth, onAuthChange, saveAuth, type StoredAuth } from '../api/storage';
 
 interface AuthValue {
   user: User | null;
   login: (number: string, password: string) => Promise<User>;
+  signup: (number: string, name: string, password: string) => Promise<User>;
   logout: () => void;
   enterAs: (role: Extract<Role, 'PROFESSOR' | 'STUDENT'>) => User;
 }
@@ -14,8 +15,17 @@ const AuthContext = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<StoredAuth | null>(() => loadAuth());
 
+  useEffect(() => onAuthChange(() => setAuth(loadAuth())), []);
+
   const login = useCallback(async (number: string, password: string) => {
     const res = await api.login(number, password);
+    saveAuth(res);
+    setAuth(res);
+    return res.user;
+  }, []);
+
+  const signup = useCallback(async (number: string, name: string, password: string) => {
+    const res = await api.signup(number, name, password);
     saveAuth(res);
     setAuth(res);
     return res.user;
@@ -34,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user: auth?.user ?? null, login, logout, enterAs }),
-    [auth, login, logout, enterAs],
+    () => ({ user: auth?.user ?? null, login, signup, logout, enterAs }),
+    [auth, login, signup, logout, enterAs],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

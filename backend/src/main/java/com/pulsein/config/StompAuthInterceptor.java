@@ -2,6 +2,7 @@ package com.pulsein.config;
 
 import com.pulsein.auth.AuthUser;
 import com.pulsein.auth.JwtProvider;
+import com.pulsein.course.CourseService;
 import com.pulsein.session.SessionService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,13 +20,17 @@ import org.springframework.stereotype.Component;
 public class StompAuthInterceptor implements ChannelInterceptor {
 
     private static final Pattern TOKEN_TOPIC = Pattern.compile("^/topic/sessions/(\\d+)/token$");
+    private static final Pattern JOIN_TOPIC = Pattern.compile("^/topic/courses/(\\d+)/join-token$");
 
     private final JwtProvider jwtProvider;
     private final SessionService sessionService;
+    private final CourseService courseService;
 
-    public StompAuthInterceptor(JwtProvider jwtProvider, @Lazy SessionService sessionService) {
+    public StompAuthInterceptor(JwtProvider jwtProvider, @Lazy SessionService sessionService,
+                                @Lazy CourseService courseService) {
         this.jwtProvider = jwtProvider;
         this.sessionService = sessionService;
+        this.courseService = courseService;
     }
 
     @Override
@@ -49,12 +54,17 @@ public class StompAuthInterceptor implements ChannelInterceptor {
     private void checkSubscribe(StompHeaderAccessor accessor) {
         AuthUser user = AuthUser.from(accessor.getUser());
         String destination = accessor.getDestination();
-        Matcher m = destination == null ? null : TOKEN_TOPIC.matcher(destination);
-        if (user == null || m == null || !m.matches()) {
-            throw new MessagingException("구독할 수 없는 경로예요");
-        }
-        if (!user.isProfessor() || !sessionService.isOwner(Long.valueOf(m.group(1)), user.id())) {
+        if (user == null || destination == null || !user.isProfessor()) {
             throw new MessagingException("권한이 없어요");
         }
+        Matcher session = TOKEN_TOPIC.matcher(destination);
+        if (session.matches() && sessionService.isOwner(Long.valueOf(session.group(1)), user.id())) {
+            return;
+        }
+        Matcher join = JOIN_TOPIC.matcher(destination);
+        if (join.matches() && courseService.isProfessorOf(Long.valueOf(join.group(1)), user.id())) {
+            return;
+        }
+        throw new MessagingException("구독할 수 없는 경로예요");
     }
 }

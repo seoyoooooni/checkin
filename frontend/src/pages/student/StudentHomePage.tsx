@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type Course } from '../../api';
 import { useAuth } from '../../auth/AuthContext';
-import { IconBook, IconMic } from '../../components/icons';
+import { IconBook, IconMic, IconPlus } from '../../components/icons';
 import { PortalLayout } from '../../components/PortalLayout';
 import './student.css';
 
@@ -39,6 +39,10 @@ export function StudentHomePage() {
         <h2 className="page-title with-icon">
           <IconBook size={26} />내 수강 과목
         </h2>
+        <button className="btn btn-secondary" onClick={() => navigate('/student/join')}>
+          <IconPlus size={18} />
+          강의 참여
+        </button>
       </div>
 
       {error && <div className="card empty">{error}</div>}
@@ -49,7 +53,16 @@ export function StudentHomePage() {
           ))}
         </div>
       )}
-      {courses?.length === 0 && <div className="card empty">수강 중인 과목이 없어요</div>}
+      {courses?.length === 0 && (
+        <div className="card empty">
+          아직 참여한 강의가 없어요
+          <div className="empty-action">
+            <button className="btn btn-primary" onClick={() => navigate('/student/join')}>
+              강의 참여
+            </button>
+          </div>
+        </div>
+      )}
 
       {courses && courses.length > 0 && (
         <div className="course-grid">

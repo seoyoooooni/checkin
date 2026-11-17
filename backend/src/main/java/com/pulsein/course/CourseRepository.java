@@ -11,4 +11,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
 
     @Query("select c from Course c where c.id in (select e.courseId from Enrollment e where e.userId = :userId) order by c.name")
     List<Course> findEnrolledCourses(@Param("userId") Long userId);
+
+    List<Course> findByJoinOpenTrue();
 }

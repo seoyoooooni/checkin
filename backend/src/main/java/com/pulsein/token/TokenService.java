@@ -2,11 +2,13 @@ package com.pulsein.token;
 
 import com.pulsein.session.AttendanceSession;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,23 +16,58 @@ public class TokenService {
 
     public static final int CODE_LENGTH = 6;
     private static final int MODULO = 1_000_000;
+    private static final int SECRET_BYTES = 32;
     private static final String ALGORITHM = "HmacSHA256";
+
+    private final int defaultSlotSeconds;
+    private final SecureRandom random = new SecureRandom();
+
+    public TokenService(@Value("${app.attendance.slot-seconds}") int defaultSlotSeconds) {
+        this.defaultSlotSeconds = defaultSlotSeconds;
+    }
 
     public record TokenTick(String token, long slot, long expiresAt) {
     }
 
+    public byte[] newSecret() {
+        byte[] secret = new byte[SECRET_BYTES];
+        random.nextBytes(secret);
+        return secret;
+    }
+
+    public int defaultSlotSeconds() {
+        return defaultSlotSeconds;
+    }
+
+    public long slotOf(int slotSeconds, long epochMillis) {
+        return epochMillis / (slotSeconds * 1000L);
+    }
+
+    public TokenTick tick(byte[] secret, int slotSeconds, long epochMillis) {
+        long slot = slotOf(slotSeconds, epochMillis);
+        return new TokenTick(code(secret, slot), slot, (slot + 1) * slotSeconds * 1000L);
+    }
+
+    public boolean matches(byte[] secret, String token, long slot) {
+        byte[] expected = code(secret, slot).getBytes(StandardCharsets.US_ASCII);
+        return MessageDigest.isEqual(expected, token.getBytes(StandardCharsets.US_ASCII));
+    }
+
+    public boolean matchesRecent(byte[] secret, int slotSeconds, String token, long epochMillis) {
+        long current = slotOf(slotSeconds, epochMillis);
+        return matches(secret, token, current) || matches(secret, token, current - 1);
+    }
+
     public long slotOf(AttendanceSession session, long epochMillis) {
-        return epochMillis / slotMillis(session);
+        return slotOf(session.getSlotSeconds(), epochMillis);
     }
 
     public TokenTick tick(AttendanceSession session, long epochMillis) {
-        long slot = slotOf(session, epochMillis);
-        return new TokenTick(code(session.getSecret(), slot), slot, (slot + 1) * slotMillis(session));
+        return tick(session.getSecret(), session.getSlotSeconds(), epochMillis);
     }
 
     public boolean matches(AttendanceSession session, String token, long slot) {
-        byte[] expected = code(session.getSecret(), slot).getBytes(StandardCharsets.US_ASCII);
-        return MessageDigest.isEqual(expected, token.getBytes(StandardCharsets.US_ASCII));
+        return matches(session.getSecret(), token, slot);
     }
 
     public static boolean isWellFormed(String token) {
@@ -51,9 +88,5 @@ public class TokenService {
         } catch (GeneralSecurityException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    private long slotMillis(AttendanceSession session) {
-        return session.getSlotSeconds() * 1000L;
     }
 }

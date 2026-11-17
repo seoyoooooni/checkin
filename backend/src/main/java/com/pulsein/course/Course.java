@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
 
 @Entity
 @Table(name = "courses")
@@ -33,7 +34,40 @@ public class Course {
     @Column(nullable = false)
     private String schedule;
 
+    @Column(name = "join_secret")
+    private byte[] joinSecret;
+
+    @Column(name = "join_open", nullable = false)
+    private boolean joinOpen;
+
+    @Column(name = "join_opened_at")
+    private Instant joinOpenedAt;
+
     protected Course() {
+    }
+
+    public void openJoin(byte[] secret) {
+        this.joinSecret = secret;
+        this.joinOpen = true;
+        this.joinOpenedAt = Instant.now();
+    }
+
+    public void closeJoin() {
+        this.joinSecret = null;
+        this.joinOpen = false;
+        this.joinOpenedAt = null;
+    }
+
+    public boolean isJoinOpen() {
+        return joinOpen && joinSecret != null;
+    }
+
+    public byte[] getJoinSecret() {
+        return joinSecret;
+    }
+
+    public Instant getJoinOpenedAt() {
+        return joinOpenedAt;
     }
 
     public Course(String name, String section, String semester, Long professorId, String room, String schedule) {

@@ -96,3 +96,17 @@ export const IconBook = ({ size, ...p }: P) => (
     <path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H19v-5" />
   </svg>
 );
+
+export const IconIdCard = ({ size, ...p }: P) => (
+  <svg {...base(size)} strokeWidth={1.6} {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="3" />
+    <circle cx="9" cy="11" r="2.2" />
+    <path d="M5.8 16c.6-1.5 1.8-2.3 3.2-2.3s2.6.8 3.2 2.3M14.5 10h4M14.5 13.5h3" />
+  </svg>
+);
+
+export const IconPlus = ({ size, ...p }: P) => (
+  <svg {...base(size)} {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);

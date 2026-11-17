@@ -41,9 +41,10 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/signup").permitAll()
                         .requestMatchers("/ws", "/ws/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/check-in").hasRole("STUDENT")
+                        .requestMatchers("/api/enrollments", "/api/enrollments/**").hasRole("STUDENT")
                         .requestMatchers("/api/me/**").authenticated()
                         .requestMatchers("/api/**").hasRole("PROFESSOR")
                         .anyRequest().denyAll())

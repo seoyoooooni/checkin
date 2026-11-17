@@ -1,6 +1,16 @@
 import { loadAuth, saveAuth } from './storage';
 import { subscribeStomp } from './stomp';
-import type { Api, AttendanceRecord, AttendanceSession, CheckInResult, Course, LoginResult, TokenTick } from './types';
+import type {
+  Api,
+  AttendanceRecord,
+  AttendanceSession,
+  CheckInResult,
+  Course,
+  JoinPreview,
+  LoginResult,
+  Student,
+  TokenTick,
+} from './types';
 import { ApiError } from './types';
 
 const BASE = '/api';
@@ -20,7 +30,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError(0, '서버에 연결하지 못했어요');
   }
-  if (res.status === 401 && path !== '/auth/login') {
+  if (res.status === 401 && !path.startsWith('/auth/')) {
     saveAuth(null);
     window.location.replace('/login');
   }
@@ -42,6 +52,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const httpApi: Api = {
   login: (number, password) => request<LoginResult>('POST', '/auth/login', { number, password }),
+  signup: (number, name, password) => request<LoginResult>('POST', '/auth/signup', { number, name, password }),
   getMyCourses: () => request<Course[]>('GET', '/me/courses'),
   getActiveSession: (courseId) =>
     request<AttendanceSession | null>('GET', `/courses/${courseId}/sessions/active`),
@@ -52,16 +63,29 @@ export const httpApi: Api = {
   getRecords: (sessionId) => request<AttendanceRecord[]>('GET', `/sessions/${sessionId}/records`),
   markAttendance: (sessionId, userId, status) =>
     request<void>('PUT', `/sessions/${sessionId}/records/${userId}`, { status, manual: true }),
-  subscribeToken(sessionId, onTick, onError) {
-    return subscribeStomp(
-      `/topic/sessions/${sessionId}/token`,
-      (body) => {
-        try {
-          onTick(JSON.parse(body) as TokenTick);
-        } catch {}
-      },
-      onError,
-    );
-  },
+  subscribeToken: (sessionId, onTick, onError) => subscribeTicks(`/topic/sessions/${sessionId}/token`, onTick, onError),
   checkIn: (token, deviceId) => request<CheckInResult>('POST', '/check-in', { token, deviceId }),
+  createCourse: (input) => request<Course>('POST', '/courses', input),
+  getCourse: (courseId) => request<Course>('GET', `/courses/${courseId}`),
+  openJoin: (courseId) => request<Course>('POST', `/courses/${courseId}/join/open`),
+  closeJoin: (courseId) => request<Course>('POST', `/courses/${courseId}/join/close`),
+  subscribeJoinToken: (courseId, onTick, onError) =>
+    subscribeTicks(`/topic/courses/${courseId}/join-token`, onTick, onError),
+  getStudents: (courseId) => request<Student[]>('GET', `/courses/${courseId}/students`),
+  addStudent: (courseId, number) => request<Student>('POST', `/courses/${courseId}/students`, { number }),
+  removeStudent: (courseId, userId) => request<void>('DELETE', `/courses/${courseId}/students/${userId}`),
+  previewJoin: (token) => request<JoinPreview>('POST', '/enrollments/preview', { token }),
+  joinCourse: (ticket) => request<Course>('POST', '/enrollments', { ticket }),
 };
+
+function subscribeTicks(destination: string, onTick: (tick: TokenTick) => void, onError?: (message: string) => void) {
+  return subscribeStomp(
+    destination,
+    (body) => {
+      try {
+        onTick(JSON.parse(body) as TokenTick);
+      } catch {}
+    },
+    onError,
+  );
+}

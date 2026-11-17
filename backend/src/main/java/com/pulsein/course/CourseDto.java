@@ -8,10 +8,11 @@ public record CourseDto(
         String professorName,
         String room,
         String schedule,
-        long studentCount) {
+        long studentCount,
+        boolean joinOpen) {
 
     public static CourseDto of(Course c, String professorName, long studentCount) {
         return new CourseDto(String.valueOf(c.getId()), c.getName(), c.getSection(), c.getSemester(), professorName,
-                c.getRoom(), c.getSchedule(), studentCount);
+                c.getRoom(), c.getSchedule(), studentCount, c.isJoinOpen());
     }
 }

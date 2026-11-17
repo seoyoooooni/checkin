@@ -1,4 +1,4 @@
-import type { Api, AttendanceRecord, AttendanceSession, Course, User } from './types';
+import type { Api, AttendanceRecord, AttendanceSession, Course, Student, TokenTick, User } from './types';
 
 export const SAMPLE_USERS: Record<'PROFESSOR' | 'STUDENT', User> = {
   PROFESSOR: { id: 'prof-1', number: 'P2026001', name: '닉네임', role: 'PROFESSOR' },
@@ -26,6 +26,25 @@ const TOKEN = '123456';
 
 let session: AttendanceSession | null = null;
 let records = RECORDS.map((r) => ({ ...r }));
+let joinOpen = false;
+let students: Student[] = RECORDS.map((r) => ({ userId: r.userId, number: r.studentNumber, name: r.name }));
+
+function fakeTicks(onTick: (tick: TokenTick) => void) {
+  const slotMs = 5000;
+  let last = -1;
+  const tick = () => {
+    const slot = Math.floor(Date.now() / slotMs);
+    if (slot !== last) {
+      last = slot;
+      onTick({ token: TOKEN, slot, expiresAt: (slot + 1) * slotMs });
+    }
+  };
+  tick();
+  const id = window.setInterval(tick, 200);
+  return () => clearInterval(id);
+}
+
+const courseNow = (): Course => ({ ...COURSE, studentCount: students.length, joinOpen });
 
 const wait = (ms = 200) => new Promise((r) => setTimeout(r, ms));
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
@@ -35,6 +54,12 @@ export const sampleApi: Api = {
     await wait();
     const user = number.trim().toUpperCase().startsWith('P') ? SAMPLE_USERS.PROFESSOR : SAMPLE_USERS.STUDENT;
     return { accessToken: '', user };
+  },
+
+  async signup(number, name) {
+    await wait();
+    const base = number.trim().toUpperCase().startsWith('P') ? SAMPLE_USERS.PROFESSOR : SAMPLE_USERS.STUDENT;
+    return { accessToken: '', user: { ...base, number: number.trim().toUpperCase(), name } };
   },
 
   async getMyCourses() {
@@ -93,22 +118,65 @@ export const sampleApi: Api = {
   },
 
   subscribeToken(_sessionId, onTick) {
-    const slotMs = (session?.slotSeconds ?? 5) * 1000;
-    let last = -1;
-    const tick = () => {
-      const slot = Math.floor(Date.now() / slotMs);
-      if (slot !== last) {
-        last = slot;
-        onTick({ token: TOKEN, slot, expiresAt: (slot + 1) * slotMs });
-      }
-    };
-    tick();
-    const id = window.setInterval(tick, 200);
-    return () => clearInterval(id);
+    return fakeTicks(onTick);
   },
 
   async checkIn() {
     await wait(300);
     return { code: 'PRESENT', courseName: COURSE.name, submittedAt: new Date().toISOString() };
+  },
+
+  async createCourse(input) {
+    await wait();
+    return { ...COURSE, ...input, id: `course-${Date.now()}`, studentCount: 0, joinOpen: false };
+  },
+
+  async getCourse() {
+    await wait(100);
+    return courseNow();
+  },
+
+  async openJoin() {
+    await wait();
+    joinOpen = true;
+    return courseNow();
+  },
+
+  async closeJoin() {
+    await wait();
+    joinOpen = false;
+    return courseNow();
+  },
+
+  subscribeJoinToken(_courseId, onTick) {
+    return fakeTicks(onTick);
+  },
+
+  async getStudents() {
+    await wait(100);
+    return students.map((s) => ({ ...s }));
+  },
+
+  async addStudent(_courseId, number) {
+    await wait();
+    if (students.some((s) => s.number === number)) throw new Error('이미 수강 중인 학생이에요');
+    const added = { userId: `stu-${Date.now()}`, number, name: '새 학생' };
+    students = [...students, added];
+    return added;
+  },
+
+  async removeStudent(_courseId, userId) {
+    await wait();
+    students = students.filter((s) => s.userId !== userId);
+  },
+
+  async previewJoin() {
+    await wait(300);
+    return { code: 'OK', ticket: 'sample-ticket', course: courseNow() };
+  },
+
+  async joinCourse() {
+    await wait();
+    return courseNow();
   },
 };

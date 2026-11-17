@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, type CheckInCode, type CheckInResult } from '../../api';
 import { getDeviceId } from '../../api/storage';
 import { CODE_LENGTH } from '../../audio/protocol';
 import { ReceiverError, UltrasonicReceiver } from '../../audio/receiver';
-import { IconAlert, IconCheck, IconChevron, IconMic, IconX } from '../../components/icons';
+import { IconAlert, IconCheck, IconChevron, IconX } from '../../components/icons';
+import { Hero, Pulse, ResultIcon, SignalBars } from './ListenUi';
 import { PortalLayout } from '../../components/PortalLayout';
 import './student.css';
 
@@ -314,44 +315,6 @@ export function CheckInPage() {
   );
 }
 
-function Hero({
-  visual,
-  title,
-  desc,
-  children,
-}: {
-  visual: ReactNode;
-  title: string;
-  desc: string;
-  children?: ReactNode;
-}) {
-  return (
-    <section className="hero">
-      <div className="hero-visual">{visual}</div>
-      <h1 className="mobile-headline hero-title">{title}</h1>
-      <p className="mobile-desc hero-desc">{desc}</p>
-      {children && <div className="hero-extra">{children}</div>}
-    </section>
-  );
-}
-
-function Pulse({ on }: { on: boolean }) {
-  return (
-    <div className={`pulse-wrap ${on ? 'on' : 'off'}`} style={{ width: 96, height: 96 }}>
-      <span className="pulse-ring" />
-      <span className="pulse-ring" />
-      <span className="pulse-ring" />
-      <span className="pulse-core" style={{ width: 96, height: 96, background: on ? undefined : 'var(--blue-500)' }}>
-        <IconMic size={40} />
-      </span>
-    </div>
-  );
-}
-
-function ResultIcon({ tone, icon }: { tone: 'green' | 'orange' | 'blue' | 'grey' | 'red'; icon: ReactNode }) {
-  return <div className={`result-icon tone-${tone}`}>{icon}</div>;
-}
-
 function ResultCard({ result }: { result: CheckInResult }) {
   return (
     <dl className="result-card">
@@ -378,17 +341,6 @@ function ManualHint() {
       <div>
         계속 안 되면 <b>교수님께 수동 출석</b>을 요청해주세요. 교수님 화면에서 바로 출석 처리할 수 있어요.
       </div>
-    </div>
-  );
-}
-
-function SignalBars({ snr }: { snr: number }) {
-  const steps = [6, 12, 18, 24, 30];
-  return (
-    <div className="bars">
-      {steps.map((s, i) => (
-        <i key={s} className={snr >= s ? 'on' : ''} style={{ height: 8 + i * 4 }} />
-      ))}
     </div>
   );
 }
