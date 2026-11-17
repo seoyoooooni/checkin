@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   api,
@@ -8,11 +8,13 @@ import {
   type Course,
   type ManualStatus,
 } from '../../api';
+import type { BandId } from '../../audio/protocol';
 import { UltrasonicTransmitter } from '../../audio/transmitter';
 import { IconChevron, IconPause, IconSearch, IconSpeaker } from '../../components/icons';
 import { Modal } from '../../components/Modal';
 import { statusLabel } from '../../components/StatusBadge';
 import { PortalLayout } from '../../components/PortalLayout';
+import { DEFAULT_VOLUME, SignalControls, loadBand, saveBand } from './SignalControls';
 import './professor.css';
 
 const POLL_MS = 3000;
@@ -54,7 +56,8 @@ export function SessionPage() {
   const [expiresAt, setExpiresAt] = useState(0);
   const [broadcasting, setBroadcasting] = useState(false);
   const [audioError, setAudioError] = useState('');
-  const [volume, setVolume] = useState(70);
+  const [volume, setVolume] = useState(DEFAULT_VOLUME);
+  const [band, setBand] = useState<BandId>(loadBand);
   const tokenRef = useRef<string | null>(null);
   const txRef = useRef<UltrasonicTransmitter | null>(null);
 
@@ -128,6 +131,7 @@ export function SessionPage() {
     try {
       setAudioError('');
       tx.setVolume(volume / 100);
+      tx.setBand(band);
       await tx.start();
       setBroadcasting(true);
     } catch {
@@ -138,6 +142,12 @@ export function SessionPage() {
   const changeVolume = (v: number) => {
     setVolume(v);
     txRef.current?.setVolume(v / 100);
+  };
+
+  const changeBand = (b: BandId) => {
+    setBand(b);
+    saveBand(b);
+    txRef.current?.setBand(b);
   };
 
   const endSession = async () => {
@@ -262,22 +272,17 @@ export function SessionPage() {
                   <IconSpeaker size={48} />
                 </span>
               </div>
-              <h2 className="broadcast-title">{broadcasting ? '출석 신호를 보내고 있어요' : '신호가 멈춰 있어요'}</h2>
-              <p className="broadcast-desc">
-                {broadcasting
-                  ? '학생들에게 출석 화면을 열라고 안내해주세요'
-                  : '아래 버튼을 눌러야 소리가 나가요'}
-              </p>
-
-              <div className="slot">
-                <div className="slot-head">
-                  <span>다음 신호까지</span>
-                  <span className="num">{(slotLeft / 1000).toFixed(1)}초</span>
+              {broadcasting && (
+                <div className="slot">
+                  <div className="slot-head">
+                    <span>다음 신호까지</span>
+                    <span className="num">{(slotLeft / 1000).toFixed(1)}초</span>
+                  </div>
+                  <div className="slot-bar">
+                    <span style={{ width: `${slotPct}%` }} />
+                  </div>
                 </div>
-                <div className="slot-bar">
-                  <span style={{ width: `${slotPct}%` }} />
-                </div>
-              </div>
+              )}
 
               <button
                 className={`btn btn-lg btn-block ${broadcasting ? 'btn-grey' : 'btn-primary'}`}
@@ -293,21 +298,7 @@ export function SessionPage() {
               </button>
               {audioError && <p className="error-text">{audioError}</p>}
 
-              <div className="volume">
-                <div className="slot-head">
-                  <span>음량</span>
-                  <span className="num">{volume}%</span>
-                </div>
-                <input
-                  type="range"
-                  className="slider"
-                  min={5}
-                  max={100}
-                  value={volume}
-                  style={{ '--fill': `${((volume - 5) / 95) * 100}%` } as CSSProperties}
-                  onChange={(e) => changeVolume(Number(e.target.value))}
-                />
-              </div>
+              <SignalControls volume={volume} onVolume={changeVolume} band={band} onBand={changeBand} />
             </>
           ) : (
             <div className="closed">
@@ -404,8 +395,6 @@ export function SessionPage() {
       >
         <p className="modal-desc num">
           지금까지 {total}명 중 {attended}명이 출석했어요.
-          <br />
-          종료하면 신호가 멈추고 학생은 더 이상 출석할 수 없어요.
         </p>
       </Modal>
     </PortalLayout>

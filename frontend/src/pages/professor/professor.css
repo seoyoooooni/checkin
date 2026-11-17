@@ -51,14 +51,10 @@
   color: var(--grey-600);
 }
 
-.slot,
-.volume {
+.slot {
   width: 100%;
   margin: 24px 0 16px;
   text-align: left;
-}
-.volume {
-  margin: 20px 0 0;
 }
 .slot-head {
   display: flex;
@@ -278,4 +274,79 @@
   font-size: 12px;
   line-height: 1.45;
   color: var(--grey-500);
+}
+
+.course-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.recruit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 24px;
+}
+.student-panel {
+  padding: 20px 0 8px;
+}
+.student-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.student-add {
+  display: flex;
+  gap: 6px;
+}
+.student-add .input {
+  width: 180px;
+}
+.student-add .btn {
+  height: 40px;
+}
+.student-add-error {
+  padding: 10px 20px 0;
+}
+.student-list {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.student-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 20px;
+}
+.student-row + .student-row {
+  border-top: 1px solid var(--grey-100);
+}
+.student-name {
+  min-width: 72px;
+  font-size: 15px;
+  font-weight: 700;
+}
+.student-number {
+  flex: 1;
+  font-size: 14px;
+  color: var(--grey-500);
+}
+.student-row .btn-text:hover {
+  color: var(--red-500);
+}
+
+.signal-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  margin-top: 20px;
+  text-align: left;
 }

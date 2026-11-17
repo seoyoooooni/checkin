@@ -1,4 +1,4 @@
-import { CANDIDATES, CODE_LENGTH, getAudioContextCtor } from './protocol';
+import { BANDS, CODE_LENGTH, candidatesOf, getAudioContextCtor, type Candidate } from './protocol';
 
 export type ReceiverErrorCode = 'insecure' | 'denied' | 'no-device' | 'low-sample-rate' | 'unknown';
 
@@ -22,6 +22,22 @@ export interface ReceiverOptions {
 const MIN_FRAMES = 3;
 const RESET_MS = 1500;
 
+interface BandDecoder {
+  candidates: Candidate[];
+  run: { sym: string | null; frames: number };
+  reading: boolean;
+  digits: string[];
+  lastTime: number;
+}
+
+const newDecoder = (candidates: Candidate[]): BandDecoder => ({
+  candidates,
+  run: { sym: null, frames: 0 },
+  reading: false,
+  digits: [],
+  lastTime: 0,
+});
+
 export class UltrasonicReceiver {
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
@@ -30,12 +46,7 @@ export class UltrasonicReceiver {
   private data: Float32Array<ArrayBuffer> = new Float32Array(0);
   private binHz = 0;
   private frame = 0;
-  private run: { sym: string | null; frames: number } = { sym: null, frames: 0 };
-  private decoder: { reading: boolean; digits: string[]; lastTime: number } = {
-    reading: false,
-    digits: [],
-    lastTime: 0,
-  };
+  private decoders: BandDecoder[] = [];
   private readonly threshold: number;
   private readonly codeLength: number;
 
@@ -87,6 +98,7 @@ export class UltrasonicReceiver {
     this.analyser = analyser;
     this.data = new Float32Array(analyser.frequencyBinCount);
     this.binHz = ctx.sampleRate / analyser.fftSize;
+    this.decoders = Object.values(BANDS).map((b) => newDecoder(candidatesOf(b)));
     this.loop();
   }
 
@@ -97,8 +109,7 @@ export class UltrasonicReceiver {
     this.ctx = null;
     this.analyser = null;
     this.stream = null;
-    this.run = { sym: null, frames: 0 };
-    this.decoder = { reading: false, digits: [], lastTime: 0 };
+    this.decoders = [];
   }
 
   private binOf(f: number) {
@@ -129,40 +140,43 @@ export class UltrasonicReceiver {
     this.analyser.getFloatFrequencyData(this.data);
     const floor = this.noiseFloor();
 
-    let sym: string | null = null;
-    let symSnr = -Infinity;
-    for (const c of CANDIDATES) {
-      const s = this.peakAt(c.f) - floor;
-      if (s > symSnr) {
-        symSnr = s;
-        sym = c.sym;
+    let bestSnr = -Infinity;
+    for (const d of this.decoders) {
+      let sym: string | null = null;
+      let symSnr = -Infinity;
+      for (const c of d.candidates) {
+        const snr = this.peakAt(c.f) - floor;
+        if (snr > symSnr) {
+          symSnr = snr;
+          sym = c.sym;
+        }
       }
+      bestSnr = Math.max(bestSnr, symSnr);
+      this.feed(d, symSnr < this.threshold ? null : sym);
     }
-    if (symSnr < this.threshold) sym = null;
-    this.feed(sym);
 
     this.frame++;
-    if (this.opts.onLevel && this.frame % 6 === 0) this.opts.onLevel(Math.max(0, symSnr));
+    if (this.opts.onLevel && this.frame % 6 === 0) this.opts.onLevel(Math.max(0, bestSnr));
     this.raf = requestAnimationFrame(this.loop);
   };
 
-  private feed(sym: string | null) {
-    if (sym === this.run.sym) {
-      this.run.frames++;
-      if (this.run.frames === MIN_FRAMES && sym !== null) this.onSymbol(sym);
+  private feed(d: BandDecoder, sym: string | null) {
+    if (sym === d.run.sym) {
+      d.run.frames++;
+      if (d.run.frames === MIN_FRAMES && sym !== null) this.onSymbol(d, sym);
       return;
     }
-    this.run = { sym, frames: 1 };
+    d.run = { sym, frames: 1 };
   }
 
-  private onSymbol(sym: string) {
+  private onSymbol(d: BandDecoder, sym: string) {
     const now = performance.now();
-    const d = this.decoder;
     if (d.reading && now - d.lastTime > RESET_MS) d.reading = false;
     d.lastTime = now;
 
     if (sym === 'S') {
-      this.decoder = { reading: true, digits: [], lastTime: now };
+      d.reading = true;
+      d.digits = [];
       this.opts.onProgress?.(0);
       return;
     }

@@ -1,23 +1,30 @@
 import {
+  BANDS,
   GAP_MS,
   REPEAT_PAUSE_MS,
-  START_FREQ,
   SYMBOL_MS,
   encodeSymbols,
   getAudioContextCtor,
   symbolFreq,
+  type Band,
+  type BandId,
 } from './protocol';
 
 const LOOKAHEAD_SEC = 1.5;
 const TICK_MS = 100;
-const RAMP_SEC = 0.01;
+const RAMP_SEC = 0.025;
+const CURVE_POINTS = 64;
+
+const fadeIn = Float32Array.from({ length: CURVE_POINTS }, (_, i) => 0.5 - 0.5 * Math.cos((Math.PI * i) / (CURVE_POINTS - 1)));
+const fadeOut = Float32Array.from(fadeIn).reverse();
 
 export class UltrasonicTransmitter {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private timer: number | null = null;
   private nextTime = 0;
-  private volume = 0.7;
+  private volume = 0.4;
+  private band: Band = BANDS.normal;
 
   constructor(private readonly getCode: () => string | null) {}
 
@@ -71,6 +78,10 @@ export class UltrasonicTransmitter {
     }
   }
 
+  setBand(id: BandId) {
+    this.band = BANDS[id];
+  }
+
   dispose() {
     this.stop();
     if (this.ctx) {
@@ -96,10 +107,11 @@ export class UltrasonicTransmitter {
   private scheduleCode(code: string, t: number) {
     const sym = SYMBOL_MS / 1000;
     const gap = GAP_MS / 1000;
-    this.tone(START_FREQ, t, sym * 2);
+    const band = this.band;
+    this.tone(band.startFreq, t, sym * 2);
     t += sym * 2 + gap;
     for (const s of encodeSymbols(code)) {
-      this.tone(symbolFreq(s), t, sym);
+      this.tone(symbolFreq(band, s), t, sym);
       t += sym + gap;
     }
     return t + REPEAT_PAUSE_MS / 1000;
@@ -110,10 +122,9 @@ export class UltrasonicTransmitter {
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.frequency.value = f;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(1, t + RAMP_SEC);
-    g.gain.setValueAtTime(1, t + dur - RAMP_SEC);
-    g.gain.linearRampToValueAtTime(0, t + dur);
+    g.gain.value = 0;
+    g.gain.setValueCurveAtTime(fadeIn, t, RAMP_SEC);
+    g.gain.setValueCurveAtTime(fadeOut, t + dur - RAMP_SEC, RAMP_SEC);
     o.connect(g).connect(this.master!);
     o.start(t);
     o.stop(t + dur + 0.02);
