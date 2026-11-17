@@ -1,0 +1,25 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/pulsein
+    username: pulsein
+    password: pulsein
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:pulsein-dev-secret-change-me-0123456789abcdef}
+    expiration-hours: 12
+  attendance:
+    slot-seconds: 5
+    check-in-limit: 10
+    check-in-window-seconds: 10
+  seed:
+    enabled: ${SEED_ENABLED:true}
