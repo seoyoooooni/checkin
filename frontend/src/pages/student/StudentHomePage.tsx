@@ -68,12 +68,9 @@ export function StudentHomePage() {
         <div className="course-grid">
           {courses.map((c) => (
             <article key={c.id} className="card course-card">
-              <div className="course-card-top">
-                <span className="course-code">
-                  {c.name}-{c.section}
-                </span>
-                <span className="chip num">{c.semester}</span>
-              </div>
+              <p className="course-sub">
+                {c.semester}학기 · {c.section}반
+              </p>
               <h3 className="course-name">{c.name}</h3>
               <dl className="course-meta">
                 <div>

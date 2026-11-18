@@ -443,10 +443,6 @@ input[type='range'].slider::-moz-range-thumb {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.user-chip-role {
-  font-size: 13px;
-  color: var(--grey-500);
-}
 .logout-btn {
   display: inline-flex;
   align-items: center;
@@ -526,9 +522,6 @@ input[type='range'].slider::-moz-range-thumb {
 }
 
 @media (max-width: 720px) {
-  .user-chip-role {
-    display: none;
-  }
   .portal-header-inner {
     gap: 8px;
     height: 60px;
@@ -674,23 +667,15 @@ input[type='range'].slider::-moz-range-thumb {
   gap: 14px;
   padding: 28px;
 }
-.course-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.course-code {
-  overflow: hidden;
-  font-size: 15px;
-  color: var(--grey-600);
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 .course-live {
   position: absolute;
   top: -13px;
   right: 24px;
+}
+.course-sub {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--grey-500);
 }
 .course-name {
   margin-top: -4px;

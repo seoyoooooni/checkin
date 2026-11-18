@@ -6,7 +6,6 @@ import { IconLogout } from './icons';
 export function PortalLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const isProfessor = user?.role === 'PROFESSOR';
 
   return (
     <div className="portal">
@@ -22,7 +21,6 @@ export function PortalLayout({ children }: { children: ReactNode }) {
                 {user.name}
                 {user.number && <span className="user-chip-num"> / {user.number}</span>}
               </b>
-              <span className="user-chip-role">{isProfessor ? '교수' : '학생'}</span>
             </div>
           )}
           <button

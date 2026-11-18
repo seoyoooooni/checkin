@@ -123,12 +123,9 @@ export function CourseListPage() {
         <div className="course-grid">
           {rows.map(({ course, active }) => (
             <article key={course.id} className="card course-card">
-              <div className="course-card-top">
-                <span className="course-code">
-                  {course.name}-{course.section}
-                </span>
-                <span className="chip num">{course.semester}</span>
-              </div>
+              <p className="course-sub">
+                {course.semester}학기 · {course.section}반
+              </p>
               {active ? (
                 <span className="badge badge-live course-live">출석 진행 중</span>
               ) : (

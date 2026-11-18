@@ -287,7 +287,7 @@ export function CoursePage() {
                 <span className="student-name">{s.name}</span>
                 <span className="student-number num">{s.number}</span>
                 <button className="btn btn-text btn-sm" onClick={() => setRemoving(s)}>
-                  내보내기
+                  삭제
                 </button>
               </div>
             ))}
@@ -298,14 +298,14 @@ export function CoursePage() {
       <Modal
         open={!!removing}
         onClose={() => !removeBusy && setRemoving(null)}
-        title={`${removing?.name ?? ''} 학생을 내보낼까요?`}
+        title={`${removing?.name ?? ''} 학생을 삭제할까요?`}
         actions={
           <>
             <button className="btn btn-grey" onClick={() => setRemoving(null)} disabled={removeBusy}>
               취소
             </button>
             <button className="btn btn-primary" onClick={removeStudent} disabled={removeBusy}>
-              내보내기
+              삭제
             </button>
           </>
         }
